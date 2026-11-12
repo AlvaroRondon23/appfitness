@@ -5,6 +5,7 @@ use App\Http\Controllers\PhysicalProfileController;
 use App\Http\Middleware\CheckPhysicalProfile;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AiAssistantController;
+use App\Http\Controllers\SesionEntrenamientoController;
 use App\Models\SesionEntrenamiento;
 
 Route::get('/', function () {
@@ -41,6 +42,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/entrenamiento/detector', function () {
             return view('entrenamiento.detector');
         })->name('entrenamiento.detector');
+
+        // Guardar la sesión de entrenamiento que genera el detector
+        Route::post('/entrenamiento/sesiones', [SesionEntrenamientoController::class, 'store'])
+            ->name('entrenamiento.sesiones.store');
 
         // RUTAS DEL MÓDULO DE IA
         Route::get('/asistente', [AiAssistantController::class, 'index'])->name('asistente');

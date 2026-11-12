@@ -96,8 +96,8 @@
         </div>
     </div>
 
-    <!-- Carga de la librería oficial de MediaPipe Pose -->
-    <script src="{{ asset('js/pose.js') }}"></script>
+    <!-- MediaPipe Pose en LOCAL (funciona sin internet). Archivos en public/js/mediapipe/pose/ -->
+    <script src="{{ asset('js/mediapipe/pose/pose.js') }}"></script>
 
     <script>
         const videoElement = document.getElementById('webcam');
@@ -109,6 +109,39 @@
         let camaraActiva = false;
         let mediaStream = null;
         let processingInterval = null;
+        let inicioSesion = null;
+        let modeloListo = false;
+        let procesandoFrame = false;
+        let ejercicioActual = document.getElementById('selector-ejercicio').value;
+
+        // Envía la sesión actual al servidor. Captura repeticiones y tiempo al instante de llamarla.
+        async function guardarSesion(ejercicio) {
+            const repeticiones = contadorReps;
+            const tiempoSegundos = inicioSesion ? Math.round((Date.now() - inicioSesion) / 1000) : 0;
+
+            if (repeticiones < 1) return false; // no se guardan sesiones vacías
+
+            try {
+                const respuesta = await fetch("{{ route('entrenamiento.sesiones.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        ejercicio: ejercicio,
+                        repeticiones: repeticiones,
+                        tiempo_segundos: tiempoSegundos
+                    })
+                });
+                if (!respuesta.ok) console.error('No se pudo guardar la sesión:', respuesta.status);
+                return respuesta.ok;
+            } catch (e) {
+                console.error('Error guardando la sesión:', e);
+                return false;
+            }
+        }
 
         function hablar(texto) {
             if ('speechSynthesis' in window) {
@@ -131,7 +164,8 @@
         }
 
         const pose = new Pose({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            // Antes se descargaban de internet (CDN). Ahora salen de tu propio servidor.
+            locateFile: (file) => `{{ asset('js/mediapipe/pose') }}/${file}`
         });
 
         pose.setOptions({
@@ -397,9 +431,47 @@
             canvasCtx.restore();
         }
 
+        // Carga el modelo al abrir la página, para que al pulsar "Iniciar Cámara" ya esté listo
+        async function cargarModelo() {
+            const btn = document.getElementById('btn-iniciar');
+            const estadoSistema = document.getElementById('estado-sistema');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            estadoSistema.innerText = "Cargando modelo...";
+
+            try {
+                await pose.initialize();
+                modeloListo = true;
+                estadoSistema.innerText = "Sistema Listo 🟡";
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } catch (e) {
+                console.error("Error cargando el modelo:", e);
+                estadoSistema.innerText = "Error al cargar el modelo 🔴";
+            }
+        }
+
+        // Procesa un frame a la vez: no se acumulan envíos si el equipo va lento
+        async function bucleDeteccion() {
+            if (!camaraActiva) return;
+
+            if (!procesandoFrame && videoElement.readyState >= 2) {
+                procesandoFrame = true;
+                try {
+                    await pose.send({ image: videoElement });
+                } catch (e) {
+                    console.error("Error enviando frame:", e);
+                }
+                procesandoFrame = false;
+            }
+            requestAnimationFrame(bucleDeteccion);
+        }
+
         async function toggleCamara() {
             const btn = document.getElementById('btn-iniciar');
             const estadoSistema = document.getElementById('estado-sistema');
+
+            if (!camaraActiva && !modeloListo) return; // el botón está bloqueado hasta que cargue el modelo
 
             if (!camaraActiva) {
                 try {
@@ -418,21 +490,14 @@
                     });
 
                     camaraActiva = true;
+                    inicioSesion = Date.now();
                     btn.innerText = "Detener Cámara";
                     btn.classList.replace('bg-blue-600', 'bg-red-600');
                     btn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
                     estadoSistema.innerText = "IA Activa 🟢";
                     estadoSistema.className = "px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-semibold rounded-full";
 
-                    processingInterval = setInterval(async () => {
-                        if (camaraActiva && videoElement.readyState >= 2) {
-                            try {
-                                await pose.send({ image: videoElement });
-                            } catch (e) {
-                                console.error("Error enviando frame:", e);
-                            }
-                        }
-                    }, 100);
+                    bucleDeteccion();
 
                 } catch (err) {
                     alert("No se pudo acceder a la cámara. Verifica los permisos del navegador.");
@@ -447,21 +512,29 @@
                 }
                 videoElement.srcObject = null;
 
+                await guardarSesion(ejercicioActual);
                 window.location.reload();
             }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('estado-sistema').innerText = "Sistema Listo 🟡";
+            cargarModelo();
 
             // Reiniciar contadores y estados al cambiar de ejercicio en el menú
-            document.getElementById('selector-ejercicio').addEventListener('change', () => {
+            document.getElementById('selector-ejercicio').addEventListener('change', async (e) => {
+                // Guarda lo hecho con el ejercicio anterior antes de reiniciar (la captura de datos es inmediata)
+                const guardado = guardarSesion(ejercicioActual);
+                ejercicioActual = e.target.value;
+                inicioSesion = Date.now();
+
                 contadorReps = 0;
                 document.getElementById('contador-reps').innerText = contadorReps;
                 estadoEjercicio = "ARRIBA";
                 document.getElementById('val-estado').innerText = estadoEjercicio;
                 document.getElementById('instruccion-texto').innerText = "Ejercicio cambiado. Listo para iniciar.";
                 document.getElementById('val-angulo').innerText = "--°";
+
+                await guardado;
             });
         });
     </script>

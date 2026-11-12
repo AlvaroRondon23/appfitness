@@ -34,4 +34,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(PhysicalProfile::class);
     }
+
+    // Relación: Un usuario tiene muchas sesiones de entrenamiento
+    public function sesiones()
+    {
+        return $this->hasMany(SesionEntrenamiento::class);
+    }
 }
