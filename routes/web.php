@@ -22,9 +22,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', function () {
             $perfil = auth()->user()->physicalProfile;
             
-            // Obtenemos las sesiones del usuario actual ordenadas de la más reciente
+            // Las 10 sesiones más recientes del usuario (se ordena por id: la última guardada va primero)
             $sesiones = SesionEntrenamiento::where('user_id', auth()->id())
-                            ->latest()
+                            ->orderByDesc('id')
                             ->take(10)
                             ->get();
 

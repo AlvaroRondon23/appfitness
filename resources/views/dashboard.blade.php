@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-bold text-xl text-gray-900 dark:text-white leading-tight">
-            {{ __('Panel de Control') }}
+            {{ __('Mi Panel') }}
         </h2>
     </x-slot>
 
@@ -199,7 +199,7 @@
                 </a>
             </div>
 
-            <!-- 📈 Resumen de Rendimiento -->
+            <!-- Resumen de Rendimiento -->
             @php
                 $nombresEj = ['sentadilla' => '🏋️‍♂️ Sentadillas', 'biceps' => '💪 Curl de Bíceps', 'flexion' => '🤸‍♂️ Flexiones'];
                 $horas = intdiv($stats['segundos'], 3600);
@@ -211,6 +211,8 @@
                     ['Tiempo entrenado', $tiempoTotal, 'text-purple-600 dark:text-purple-400'],
                     ['Racha actual', $stats['racha'] . ($stats['racha'] === 1 ? ' día' : ' días'), 'text-amber-600 dark:text-amber-400'],
                 ];
+                $meta = $stats['meta'];
+                $faltan = max(0, $meta['objetivo'] - $meta['hechas']);
             @endphp
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 mb-6">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
@@ -230,27 +232,63 @@
                         @endforeach
                     </div>
 
+                    <!-- Meta semanal -->
+                    <div class="rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/50 p-4 mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Meta de esta semana</div>
+                            <div class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ $meta['hechas'] }} / {{ $meta['objetivo'] }} sesiones</div>
+                        </div>
+                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 {{ $meta['porcentaje'] >= 100 ? 'bg-emerald-500' : 'bg-blue-500' }}" style="width: {{ $meta['porcentaje'] }}%"></div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            @if ($faltan === 0)
+                                ¡Meta cumplida esta semana! 🎉
+                            @else
+                                Te {{ $faltan === 1 ? 'falta 1 sesión' : "faltan {$faltan} sesiones" }} para cumplir tu meta. La semana se reinicia el lunes.
+                            @endif
+                        </p>
+                    </div>
+
+                    <!-- Gráficas con Chart.js -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Gráfico de los últimos 7 días -->
                         <div>
-                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Repeticiones de los últimos 7 días</div>
-                            <div class="flex items-stretch gap-2 h-36">
-                                @foreach ($stats['semana'] as $dia)
-                                    @php $alto = $stats['max_semana'] > 0 ? max(4, (int) round($dia['reps'] / $stats['max_semana'] * 100)) : 4; @endphp
-                                    <div class="flex-1 flex flex-col items-center justify-end min-w-0">
-                                        <span class="text-[10px] text-gray-500 dark:text-gray-400 mb-1">{{ $dia['reps'] > 0 ? $dia['reps'] : '' }}</span>
-                                        <div class="w-full flex-1 flex items-end">
-                                            <div class="w-full rounded-t {{ $dia['reps'] > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700' }}" style="height: {{ $alto }}%"></div>
-                                        </div>
-                                        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1">{{ $dia['etiqueta'] }}</span>
-                                    </div>
-                                @endforeach
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Repeticiones por semana</div>
+                            <div class="relative h-56">
+                                <canvas id="grafica-semanas"></canvas>
                             </div>
                         </div>
 
-                        <!-- Desglose por ejercicio -->
                         <div>
-                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Por ejercicio</div>
+                            <div class="flex justify-between items-baseline mb-3">
+                                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Evolución de la técnica</div>
+                                @if ($stats['puntaje_promedio'] !== null)
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Promedio general: <b class="text-gray-800 dark:text-gray-200">{{ $stats['puntaje_promedio'] }}/100</b></div>
+                                @endif
+                            </div>
+                            @if (count($stats['evolucion_puntaje']) > 0)
+                                <div class="relative h-56">
+                                    <canvas id="grafica-tecnica"></canvas>
+                                </div>
+                            @else
+                                <div class="h-56 flex items-center justify-center text-center text-sm text-gray-400 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 px-6">
+                                    Aún no hay puntajes de técnica en los últimos 30 días.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Sesiones por ejercicio -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <div>
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Sesiones por ejercicio</div>
+                            <div class="relative h-56">
+                                <canvas id="grafica-ejercicios"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Detalle por ejercicio</div>
                             <div class="space-y-2">
                                 @foreach ($stats['por_ejercicio'] as $e)
                                     <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/50 px-4 py-3 text-sm">
@@ -259,6 +297,9 @@
                                             {{ $e->sesiones }} {{ $e->sesiones == 1 ? 'sesión' : 'sesiones' }} ·
                                             <b class="text-gray-800 dark:text-gray-200">{{ number_format($e->repeticiones) }}</b> reps ·
                                             mejor: <b class="text-gray-800 dark:text-gray-200">{{ $e->mejor }}</b>
+                                            @if ($e->puntaje !== null)
+                                                · técnica: <b class="text-gray-800 dark:text-gray-200">{{ (int) $e->puntaje }}</b>
+                                            @endif
                                         </span>
                                     </div>
                                 @endforeach
@@ -269,11 +310,20 @@
                         </div>
                     </div>
                 @else
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay estadísticas. Completa tu primera sesión en el módulo de Entrenamiento y aparecerán aquí.</p>
+                    <!-- Estado vacío -->
+                    <div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                        <div class="text-4xl mb-3">🏋️</div>
+                        <p class="font-semibold text-gray-800 dark:text-gray-200">Todavía no tienes sesiones registradas</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-5">Completa tu primera sesión con el detector de postura y aquí verás tus repeticiones, tu técnica y tu progreso semanal.</p>
+                        <a href="{{ route('entrenamiento.detector') }}" class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition shadow-sm">
+                            Empezar a entrenar
+                        </a>
+                    </div>
                 @endif
             </div>
 
-            <!-- 📊 Historial de Sesiones Recientes (Nuevo) -->
+            
+<!-- Historial de Sesiones Recientes -->
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 mb-6">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -289,6 +339,7 @@
                                 <tr>
                                     <th class="px-4 py-3 rounded-l-xl">Ejercicio</th>
                                     <th class="px-4 py-3">Repeticiones</th>
+                                    <th class="px-4 py-3">Técnica</th>
                                     <th class="px-4 py-3">Duración</th>
                                     <th class="px-4 py-3 rounded-r-xl">Fecha</th>
                                 </tr>
@@ -296,13 +347,18 @@
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 @foreach($sesiones as $sesion)
                                     <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition">
-                                        <td class="px-4 py-3 font-bold capitalize text-gray-800 dark:text-white flex items-center gap-2">
-                                            @if($sesion->ejercicio == 'sentadilla') 🏋️‍♂️ Sentadillas
-                                            @elseif($sesion->ejercicio == 'biceps') 💪 Curl de Bíceps
-                                            @else 🤸‍♂️ Flexiones @endif
+                                        <td class="px-4 py-3 font-bold text-gray-800 dark:text-white">
+                                            {{ $nombresEj[$sesion->ejercicio] ?? ucfirst($sesion->ejercicio) }}
                                         </td>
                                         <td class="px-4 py-3 font-mono font-bold text-blue-600 dark:text-blue-400">
                                             {{ $sesion->repeticiones }} reps
+                                        </td>
+                                        <td class="px-4 py-3 font-mono">
+                                            @if ($sesion->puntaje !== null)
+                                                <span class="{{ $sesion->puntaje >= 85 ? 'text-emerald-600 dark:text-emerald-400' : ($sesion->puntaje >= 70 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400') }} font-bold">{{ $sesion->puntaje }}/100</span>
+                                            @else
+                                                <span class="text-gray-400">—</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 font-mono">
                                             {{ intdiv($sesion->tiempo_segundos, 60) }}m {{ $sesion->tiempo_segundos % 60 }}s
@@ -349,7 +405,7 @@
                     <div class="space-y-4 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800/60">
                         <div>
                             <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-2">Objetivo Metabólico</label>
-                            <select id="sim-objetivo" onchange="calcularMétricas()" class="w-full text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500">
+                            <select id="sim-objetivo" onchange="calcularMetricas()" class="w-full text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500">
                                 <option value="definicion">Definición Estricta (Déficit)</option>
                                 <option value="mantenimiento" selected>Mantenimiento Normocalórico</option>
                                 <option value="volumen">Superávit Funcional (Volumen)</option>
@@ -361,13 +417,13 @@
                                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Duración Entrenamiento</label>
                                 <span id="val-tiempo" class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">60 min</span>
                             </div>
-                            <input id="sim-tiempo" type="range" min="30" max="180" step="15" value="60" oninput="calcularMétricas()" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                            <input id="sim-tiempo" type="range" min="30" max="180" step="15" value="60" oninput="calcularMetricas()" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Peso Referencial de Trabajo</label>
                             <div class="relative rounded-xl shadow-sm">
-                                <input type="number" id="sim-peso" value="{{ $perfil->weight }}" oninput="calcularMétricas()" class="w-full text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500">
+                                <input type="number" id="sim-peso" value="{{ $perfil->weight }}" oninput="calcularMetricas()" class="w-full text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500">
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span class="text-xs text-gray-400 font-mono">kg</span>
                                 </div>
@@ -408,49 +464,107 @@
 
         </div>
     </div>
+
+    <script>
+        // Gráficas del panel (Chart.js se carga desde resources/js/app.js)
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Chart === 'undefined') return;
+
+            const colorTexto = '#9ca3af';
+            const colorGrilla = 'rgba(156, 163, 175, 0.2)';
+            Chart.defaults.color = colorTexto;
+            Chart.defaults.font.family = 'inherit';
+
+            const nombres = { sentadilla: 'Sentadillas', biceps: 'Curl de bíceps', flexion: 'Flexiones' };
+            const semanas = @json($stats['semanas']);
+            const tecnica = @json($stats['evolucion_puntaje']);
+            const porEjercicio = @json($stats['por_ejercicio']);
+
+            const ejes = (extra = {}) => ({
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: colorGrilla }, ...extra },
+            });
+
+            const lienzoSemanas = document.getElementById('grafica-semanas');
+            if (lienzoSemanas) {
+                new Chart(lienzoSemanas, {
+                    type: 'bar',
+                    data: {
+                        labels: semanas.map(s => s.etiqueta),
+                        datasets: [{ label: 'Repeticiones', data: semanas.map(s => s.reps), backgroundColor: '#3b82f6', borderRadius: 4 }],
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: ejes() },
+                });
+            }
+
+            const lienzoTecnica = document.getElementById('grafica-tecnica');
+            if (lienzoTecnica) {
+                new Chart(lienzoTecnica, {
+                    type: 'line',
+                    data: {
+                        labels: tecnica.map(t => t.etiqueta),
+                        datasets: [{ label: 'Técnica', data: tecnica.map(t => t.puntaje), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', fill: true, tension: 0.3, pointRadius: 3 }],
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: ejes({ max: 100 }) },
+                });
+            }
+
+            const lienzoEjercicios = document.getElementById('grafica-ejercicios');
+            if (lienzoEjercicios) {
+                new Chart(lienzoEjercicios, {
+                    type: 'doughnut',
+                    data: {
+                        labels: porEjercicio.map(e => nombres[e.ejercicio] ?? e.ejercicio),
+                        datasets: [{ data: porEjercicio.map(e => e.sesiones), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7'], borderWidth: 0 }],
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+                });
+            }
+        });
+    </script>
+
+    <script>
+        function calcularMetricas() {
+            const objetivo = document.getElementById('sim-objetivo').value;
+            const tiempo = parseInt(document.getElementById('sim-tiempo').value);
+            const peso = parseFloat(document.getElementById('sim-peso').value) || 70;
+    
+            document.getElementById('val-tiempo').innerText = `${tiempo} min`;
+    
+            let litrosAgua = ((peso * 35) + (tiempo * 12)) / 1000;
+            
+            let factorProteina = 1.8;
+            let factorCarbo = 4.0;
+    
+            if (objetivo === 'definicion') {
+                factorProteina = 2.3;
+                factorCarbo = 2.5;
+                document.getElementById('desc-proteina').innerText = "Ratio elevado a 2.3g/kg para protección muscular en déficit.";
+                document.getElementById('desc-carbo').innerText = "Carbohidratos restringidos para promover la lipólisis energética.";
+            } else if (objetivo === 'mantenimiento') {
+                factorProteina = 2.0;
+                factorCarbo = 4.0;
+                document.getElementById('desc-proteina').innerText = "Ratio balanceado a 2.0g/kg para recambio proteico diario.";
+                document.getElementById('desc-carbo').innerText = "Aporte normocalórico ideal para balance energético neutro.";
+            } else if (objetivo === 'volumen') {
+                factorProteina = 1.8;
+                factorCarbo = 5.5;
+                document.getElementById('desc-proteina').innerText = "Ratio optimizado a 1.8g/kg apoyado por superávit calórico.";
+                document.getElementById('desc-carbo').innerText = "Carga glucogénica maximizada para promover el anabolismo muscular.";
+            }
+    
+            if (tiempo > 90) {
+                factorCarbo += 0.5;
+            }
+    
+            let totalProteina = Math.round(peso * factorProteina);
+            let totalCarbo = Math.round(peso * factorCarbo);
+    
+            document.getElementById('res-agua').innerText = `${litrosAgua.toFixed(2)} L`;
+            document.getElementById('res-proteina').innerText = `${totalProteina} g`;
+            document.getElementById('res-carbo').innerText = `${totalCarbo} g`;
+        }
+    
+        document.addEventListener('DOMContentLoaded', calcularMetricas);
+    </script>
 </x-app-layout>
-
-<script>
-    function calcularMétricas() {
-        const objetivo = document.getElementById('sim-objetivo').value;
-        const tiempo = parseInt(document.getElementById('sim-tiempo').value);
-        const peso = parseFloat(document.getElementById('sim-peso').value) || 70;
-
-        document.getElementById('val-tiempo').innerText = `${tiempo} min`;
-
-        let litrosAgua = ((peso * 35) + (tiempo * 12)) / 1000;
-        
-        let factorProteina = 1.8;
-        let factorCarbo = 4.0;
-
-        if (objetivo === 'definicion') {
-            factorProteina = 2.3;
-            factorCarbo = 2.5;
-            document.getElementById('desc-proteina').innerText = "Ratio elevado a 2.3g/kg para protección muscular en déficit.";
-            document.getElementById('desc-carbo').innerText = "Carbohidratos restringidos para promover la lipólisis energética.";
-        } else if (objetivo === 'mantenimiento') {
-            factorProteina = 2.0;
-            factorCarbo = 4.0;
-            document.getElementById('desc-proteina').innerText = "Ratio balanceado a 2.0g/kg para recambio proteico diario.";
-            document.getElementById('desc-carbo').innerText = "Aporte normocalórico ideal para balance energético neutro.";
-        } else if (objetivo === 'volumen') {
-            factorProteina = 1.8;
-            factorCarbo = 5.5;
-            document.getElementById('desc-proteina').innerText = "Ratio optimizado a 1.8g/kg apoyado por superávit calórico.";
-            document.getElementById('desc-carbo').innerText = "Carga glucogénica maximizada para promover el anabolismo muscular.";
-        }
-
-        if (tiempo > 90) {
-            factorCarbo += 0.5;
-        }
-
-        let totalProteina = Math.round(peso * factorProteina);
-        let totalCarbo = Math.round(peso * factorCarbo);
-
-        document.getElementById('res-agua').innerText = `${litrosAgua.toFixed(2)} L`;
-        document.getElementById('res-proteina').innerText = `${totalProteina} g`;
-        document.getElementById('res-carbo').innerText = `${totalCarbo} g`;
-    }
-
-    document.addEventListener('DOMContentLoaded', calcularMétricas);
-</script>
