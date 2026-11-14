@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SesionEntrenamientoController extends Controller
 {
@@ -13,7 +14,8 @@ class SesionEntrenamientoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $datos = $request->validate([
-            'ejercicio'       => ['required', 'string', 'in:sentadilla,biceps,flexion'],
+            // Debe existir en el catálogo (tabla ejercicios)
+            'ejercicio'       => ['required', 'string', Rule::exists('ejercicios', 'clave')],
             'repeticiones'    => ['required', 'integer', 'min:1', 'max:1000'],
             'tiempo_segundos' => ['required', 'integer', 'min:0', 'max:86400'],
         ]);

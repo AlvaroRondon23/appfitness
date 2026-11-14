@@ -40,4 +40,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(SesionEntrenamiento::class);
     }
+
+    // Relación: Un usuario tiene muchas consultas guardadas al asistente de IA
+    public function consultasIa()
+    {
+        return $this->hasMany(ConsultaIa::class);
+    }
 }

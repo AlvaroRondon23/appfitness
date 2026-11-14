@@ -22,4 +22,10 @@ class SesionEntrenamiento extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // Relación: el ejercicio realizado, según el catálogo (ejercicios.clave)
+    public function ejercicioCatalogo(): BelongsTo
+    {
+        return $this->belongsTo(Ejercicio::class, 'ejercicio', 'clave');
+    }
 }

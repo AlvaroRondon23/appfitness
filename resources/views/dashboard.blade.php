@@ -90,26 +90,26 @@
 
             <!-- Cálculo de IMC, TMB y Macronutrientes -->
             @php
-                $estaturaMetros =$perfil->height / 100;
-                $imc = $estaturaMetros > 0 ? round($perfil->weight / ($estaturaMetros * $estaturaMetros), 1) : 0;
-                $edad = \Carbon\Carbon::parse($perfil->birth_date)->age;
+                // Cálculos centralizados en App\Services\PerfilCalculos (se pasan desde routes/web.php)
+                $imc = $calculos['imc'];
+                $edad = $calculos['edad'];
+                $status = $calculos['categoria_imc'];
 
-                if($imc < 18.5) { 
-                    $status = 'Bajo Peso';$badgeBg = 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'; 
-                } elseif($imc < 25) {$status = 'Normal'; 
-                    $badgeBg = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400';                 } elseif($imc < 30) { 
-                    $status = 'Sobrepeso';$badgeBg = 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400'; 
-                } else { 
-                    $status = 'Obesidad';$badgeBg = 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'; 
-                }
+                $badgeBg = match ($status) {
+                    'Bajo Peso' => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+                    'Normal'    => 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
+                    'Sobrepeso' => 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+                    default     => 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+                };
 
-                // Fórmula Mifflin-St Jeor para Tasa Metabólica Basal
-                $tmb = round((10 * $perfil->weight) + (6.25 * $perfil->height) - (5 * $edad) + 5);
+                // TMB (en reposo) y gasto diario estimado según el nivel de actividad
+                $tmb = $calculos['tmb'];
+                $tdee = $calculos['tdee'];
 
-                // Distribución base (40% Carbohidratos, 30% Proteínas, 30% Grasas)
-                $carbsGramos = round(($tmb * 0.40) / 4);
-                $proteinasGramos = round(($tmb * 0.30) / 4);
-                $grasasGramos = round(($tmb * 0.30) / 9);
+                // Distribución base (40% Carbohidratos, 30% Proteínas, 30% Grasas) sobre el gasto diario
+                $carbsGramos = $calculos['carbs'];
+                $proteinasGramos = $calculos['proteinas'];
+                $grasasGramos = $calculos['grasas'];
             @endphp
 
             <!-- Métricas Calculadas -->
@@ -140,11 +140,14 @@
                                     <span class="text-3xl font-extrabold text-gray-900 dark:text-gray-100">{{ number_format($tmb) }}</span>
                                     <span class="ml-1 text-xl font-semibold text-gray-600 dark:text-gray-400">kcal / día</span>
                                 </div>
+                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Con tu nivel de actividad ({{ $perfil->activity_level }}): <b>{{ number_format($tdee) }} kcal / día</b>
+                                </div>
                             </div>
                         </div>
 
                         <div>
-                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Distribución Sugerida de Macronutrientes</div>
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Distribución Sugerida de Macronutrientes (sobre tu gasto diario)</div>
                             
                             <div class="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex shadow-inner">
                                 <div class="h-full bg-blue-500 transition-all duration-500" style="width: 40%;" title="Carbohidratos"></div>
@@ -194,6 +197,80 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </a>
+            </div>
+
+            <!-- 📈 Resumen de Rendimiento -->
+            @php
+                $nombresEj = ['sentadilla' => '🏋️‍♂️ Sentadillas', 'biceps' => '💪 Curl de Bíceps', 'flexion' => '🤸‍♂️ Flexiones'];
+                $horas = intdiv($stats['segundos'], 3600);
+                $minutos = intdiv($stats['segundos'] % 3600, 60);
+                $tiempoTotal = $horas > 0 ? "{$horas} h {$minutos} min" : "{$minutos} min";
+                $tarjetas = [
+                    ['Sesiones', $stats['sesiones'], 'text-blue-600 dark:text-blue-400'],
+                    ['Repeticiones totales', number_format($stats['repeticiones']), 'text-emerald-600 dark:text-emerald-400'],
+                    ['Tiempo entrenado', $tiempoTotal, 'text-purple-600 dark:text-purple-400'],
+                    ['Racha actual', $stats['racha'] . ($stats['racha'] === 1 ? ' día' : ' días'), 'text-amber-600 dark:text-amber-400'],
+                ];
+            @endphp
+            <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 mb-6">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Resumen de Rendimiento
+                </h3>
+
+                @if ($stats['sesiones'] > 0)
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        @foreach ($tarjetas as [$etiqueta, $valor, $color])
+                            <div class="rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/50 p-4">
+                                <div class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{{ $etiqueta }}</div>
+                                <div class="mt-1 text-2xl font-extrabold {{ $color }}">{{ $valor }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Gráfico de los últimos 7 días -->
+                        <div>
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Repeticiones de los últimos 7 días</div>
+                            <div class="flex items-stretch gap-2 h-36">
+                                @foreach ($stats['semana'] as $dia)
+                                    @php $alto = $stats['max_semana'] > 0 ? max(4, (int) round($dia['reps'] / $stats['max_semana'] * 100)) : 4; @endphp
+                                    <div class="flex-1 flex flex-col items-center justify-end min-w-0">
+                                        <span class="text-[10px] text-gray-500 dark:text-gray-400 mb-1">{{ $dia['reps'] > 0 ? $dia['reps'] : '' }}</span>
+                                        <div class="w-full flex-1 flex items-end">
+                                            <div class="w-full rounded-t {{ $dia['reps'] > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700' }}" style="height: {{ $alto }}%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1">{{ $dia['etiqueta'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Desglose por ejercicio -->
+                        <div>
+                            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Por ejercicio</div>
+                            <div class="space-y-2">
+                                @foreach ($stats['por_ejercicio'] as $e)
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/50 px-4 py-3 text-sm">
+                                        <span class="font-semibold text-gray-800 dark:text-gray-200">{{ $nombresEj[$e->ejercicio] ?? ucfirst($e->ejercicio) }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 text-right">
+                                            {{ $e->sesiones }} {{ $e->sesiones == 1 ? 'sesión' : 'sesiones' }} ·
+                                            <b class="text-gray-800 dark:text-gray-200">{{ number_format($e->repeticiones) }}</b> reps ·
+                                            mejor: <b class="text-gray-800 dark:text-gray-200">{{ $e->mejor }}</b>
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                                Días activos en los últimos 30 días: <b>{{ $stats['dias_activos'] }}</b> · Mejor sesión: <b>{{ $stats['mejor'] }}</b> repeticiones
+                            </p>
+                        </div>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay estadísticas. Completa tu primera sesión en el módulo de Entrenamiento y aparecerán aquí.</p>
+                @endif
             </div>
 
             <!-- 📊 Historial de Sesiones Recientes (Nuevo) -->

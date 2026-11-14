@@ -115,7 +115,7 @@
         let ejercicioActual = document.getElementById('selector-ejercicio').value;
 
         // Envía la sesión actual al servidor. Captura repeticiones y tiempo al instante de llamarla.
-        async function guardarSesion(ejercicio) {
+        async function guardarSesion(ejercicio, alSalir = false) {
             const repeticiones = contadorReps;
             const tiempoSegundos = inicioSesion ? Math.round((Date.now() - inicioSesion) / 1000) : 0;
 
@@ -124,6 +124,7 @@
             try {
                 const respuesta = await fetch("{{ route('entrenamiento.sesiones.store') }}", {
                     method: 'POST',
+                    keepalive: alSalir, // permite que el envío termine aunque se cierre la pestaña
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
@@ -536,6 +537,14 @@
 
                 await guardado;
             });
+        });
+
+        // Si se cierra la pestaña o se navega a otra página con la cámara activa, guarda la sesión en curso
+        window.addEventListener('pagehide', () => {
+            if (camaraActiva && contadorReps > 0) {
+                camaraActiva = false; // evita guardarla dos veces
+                guardarSesion(ejercicioActual, true);
+            }
         });
     </script>
 </x-app-layout>

@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    // Asistente de IA (Google Gemini). Los valores se configuran en el archivo .env
+    'gemini' => [
+        'key'        => env('GEMINI_API_KEY'),
+        // Modelos a probar en orden; si el primero falla se usa el siguiente
+        'models'     => array_values(array_filter(array_map('trim', explode(',', env('GEMINI_MODELS', 'gemini-3.6-flash,gemini-3.1-flash-lite'))))),
+        // Mantener en true. Solo poner GEMINI_VERIFY_SSL=false en local si Windows no tiene certificados SSL.
+        'verify_ssl' => env('GEMINI_VERIFY_SSL', true),
+        'timeout'    => (int) env('GEMINI_TIMEOUT', 30),
+    ],
+
 ];

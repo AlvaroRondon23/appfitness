@@ -14,6 +14,16 @@
 
                 <form method="POST" action="/physical-profile">
                     @csrf
+                        @if ($errors->any())
+                            <div class="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+                                <ul class="list-disc list-inside">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
 
                     <!-- Peso y Estatura -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">

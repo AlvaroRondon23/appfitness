@@ -15,6 +15,16 @@
                         @csrf
                         @method('PUT') <!-- Crucial para decirle a Laravel que es una actualización -->
 
+                        @if ($errors->any())
+                            <div class="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+                                <ul class="list-disc list-inside">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <!-- Peso -->
                         <div class="mb-4">
                             <label for="weight" class="block text-sm font-medium text-gray-700">Peso Corporal (kg)</label>
@@ -31,6 +41,33 @@
                         <div class="mb-6">
                             <label for="birth_date" class="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
                             <input type="date" name="birth_date" id="birth_date" value="{{ old('birth_date', $perfil->birth_date) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        <!-- Género -->
+                        <div class="mb-4">
+                            <label for="gender" class="block text-sm font-medium text-gray-700">Género</label>
+                            <select name="gender" id="gender" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @foreach (\App\Models\PhysicalProfile::GENEROS as $opcion)
+                                    <option value="{{ $opcion }}" @selected(old('gender', $perfil->gender) === $opcion)>{{ $opcion }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Nivel de actividad -->
+                        <div class="mb-4">
+                            <label for="activity_level" class="block text-sm font-medium text-gray-700">Nivel de Actividad Física</label>
+                            <select name="activity_level" id="activity_level" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @foreach (['Sedentario' => 'Sedentario (poco o nada de ejercicio)', 'Moderado' => 'Moderado (ejercicio 3-5 días por semana)', 'Activo' => 'Activo (entrenamiento intenso diario)'] as $valor => $texto)
+                                    <option value="{{ $valor }}" @selected(old('activity_level', $perfil->activity_level) === $valor)>{{ $texto }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Condiciones médicas -->
+                        <div class="mb-6">
+                            <label for="medical_conditions" class="block text-sm font-medium text-gray-700">Lesiones o condiciones médicas (opcional)</label>
+                            <textarea name="medical_conditions" id="medical_conditions" rows="3" maxlength="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('medical_conditions', $perfil->medical_conditions) }}</textarea>
+                            <p class="mt-1 text-xs text-gray-500">El asistente de IA las tiene en cuenta para sus recomendaciones.</p>
                         </div>
 
                         <div class="flex items-center justify-end space-x-3">

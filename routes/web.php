@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\SesionEntrenamientoController;
 use App\Models\SesionEntrenamiento;
+use App\Services\EstadisticasEntrenamiento;
+use App\Services\PerfilCalculos;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,7 +28,11 @@ Route::middleware('auth')->group(function () {
                             ->take(10)
                             ->get();
 
-            return view('dashboard', compact('perfil', 'sesiones'));
+            // Cálculos del perfil (IMC, gasto energético, macros) y estadísticas de rendimiento
+            $calculos = app(PerfilCalculos::class)->para($perfil);
+            $stats = app(EstadisticasEntrenamiento::class)->resumen(auth()->user());
+
+            return view('dashboard', compact('perfil', 'sesiones', 'calculos', 'stats'));
         })->middleware('verified')->name('dashboard');
 
         Route::get('/perfil-prueba', function () {
@@ -49,7 +55,10 @@ Route::middleware('auth')->group(function () {
 
         // RUTAS DEL MÓDULO DE IA
         Route::get('/asistente', [AiAssistantController::class, 'index'])->name('asistente');
-        Route::post('/asistente/consultar', [AiAssistantController::class, 'generateResponse'])->name('asistente.consultar');
+        Route::post('/asistente/consultar', [AiAssistantController::class, 'generateResponse'])
+            ->middleware('throttle:20,1') // máximo 20 consultas por minuto
+            ->name('asistente.consultar');
+        Route::delete('/asistente/historial', [AiAssistantController::class, 'limpiar'])->name('asistente.limpiar');
         
     });
 
