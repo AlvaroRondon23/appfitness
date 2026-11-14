@@ -39,7 +39,7 @@ class PhysicalProfileController extends Controller
 
         // Si por alguna razón no tiene perfil, lo mandamos a crear
         if (!$perfil) {
-            return redirect('/perfil-prueba');
+            return redirect()->route('perfil.crear');
         }
 
         return view('edit-profile', compact('perfil'));
@@ -53,7 +53,7 @@ class PhysicalProfileController extends Controller
         $perfil = auth()->user()->physicalProfile;
 
         if (!$perfil) {
-            return redirect('/perfil-prueba');
+            return redirect()->route('perfil.crear');
         }
 
         $perfil->update($datos);

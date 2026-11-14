@@ -18,12 +18,12 @@ class CheckPhysicalProfile
             // 2. Si el usuario NO tiene un perfil físico creado en la base de datos...
             if (!$user->physicalProfile) {
                 // ... y si no está intentando entrar ya al formulario o guardarlo, lo redirigimos
-                if (!$request->is('perfil-prueba') && !$request->is('physical-profile')) {
-                    return redirect('/perfil-prueba');
+                if (!$request->routeIs('perfil.crear') && !$request->is('physical-profile')) {
+                    return redirect()->route('perfil.crear');
                 }
             } else {
-                // 3. Si SÍ tiene perfil, pero intenta entrar al formulario viejo, lo mandamos al dashboard
-                if ($request->is('perfil-prueba')) {
+                // 3. Si SÍ tiene perfil, pero intenta entrar al formulario de creación, lo mandamos al dashboard
+                if ($request->routeIs('perfil.crear')) {
                     return redirect()->route('dashboard');
                 }
             }

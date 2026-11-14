@@ -35,14 +35,14 @@ Route::middleware('auth')->group(function () {
             return view('dashboard', compact('perfil', 'sesiones', 'calculos', 'stats'));
         })->middleware('verified')->name('dashboard');
 
-        Route::get('/perfil-prueba', function () {
+        // Formulario para crear el perfil físico (antes /perfil-prueba)
+        Route::get('/perfil-fisico/crear', function () {
             return view('create-profile');
-        });
+        })->name('perfil.crear');
 
-        // Ruta para el Módulo Analizador de Entrenamiento
-        Route::get('/entrenamiento', function () {
-            return view('entrenamiento');
-        })->name('entrenamiento');
+        // /entrenamiento ahora lleva directo al detector (se mantiene el nombre de ruta
+        // 'entrenamiento' para que los enlaces existentes sigan funcionando)
+        Route::redirect('/entrenamiento', '/entrenamiento/detector')->name('entrenamiento');
 
         // Ruta para el Detector de Postura con MediaPipe
         Route::get('/entrenamiento/detector', function () {
