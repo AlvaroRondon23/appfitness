@@ -13,6 +13,13 @@ use Illuminate\View\View;
 
 class AiAssistantController extends Controller
 {
+    // Tiempo máximo total (segundos) para toda la consulta, sumando modelos e intentos.
+    // Debe quedar por debajo del max_execution_time de PHP, que se amplía abajo.
+    private const PRESUPUESTO_SEGUNDOS = 45;
+
+    // Motivos con los que Gemini corta o bloquea una respuesta por seguridad
+    private const MOTIVOS_BLOQUEO = ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION', 'OTHER'];
+
     public function index(): View
     {
         // Últimas 20 consultas del usuario, de la más antigua a la más reciente
@@ -35,10 +42,18 @@ class AiAssistantController extends Controller
         $apiKey = config('services.gemini.key');
 
         if (!$apiKey) {
-            return response()->json([
-                'respuesta' => 'Error: la API Key de Gemini no está configurada en el archivo .env (GEMINI_API_KEY).',
-            ], 500);
+            Log::error('Falta GEMINI_API_KEY en el archivo .env');
+
+            return $this->error(
+                'El asistente no está disponible por el momento. Inténtalo más tarde.',
+                500,
+                'GEMINI_API_KEY no configurada en .env'
+            );
         }
+
+        // Ampliar el límite de PHP para que no corte la petición antes de responder
+        @set_time_limit(self::PRESUPUESTO_SEGUNDOS + 15);
+        $inicio = microtime(true);
 
         $user = $request->user();
 
@@ -56,20 +71,31 @@ class AiAssistantController extends Controller
             'contents'          => $contents,
         ];
 
-        $sinConexion = false;
+        $sinConexion  = false;
         $ultimoStatus = null;
+        $modelos      = config('services.gemini.models');
 
-        foreach (config('services.gemini.models') as $modelo) {
+        foreach ($modelos as $modelo) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent";
 
             // Hasta 2 intentos por modelo si el servicio está saturado (503) o limita (429)
             for ($intento = 1; $intento <= 2; $intento++) {
+                $restante = self::PRESUPUESTO_SEGUNDOS - (microtime(true) - $inicio);
+
+                if ($restante < 4) {
+                    Log::warning('Presupuesto de tiempo agotado consultando a Gemini');
+                    break 2;
+                }
+
+                // El timeout de cada petición nunca supera el tiempo que queda
+                $timeout = (int) max(3, min((int) config('services.gemini.timeout'), floor($restante)));
+
                 try {
                     $http = Http::withHeaders([
                             'x-goog-api-key' => $apiKey, // la clave va en cabecera, no en la URL
                             'Content-Type'   => 'application/json',
                         ])
-                        ->timeout(config('services.gemini.timeout'));
+                        ->timeout($timeout);
 
                     if (!config('services.gemini.verify_ssl')) {
                         $http = $http->withoutVerifying();
@@ -78,15 +104,24 @@ class AiAssistantController extends Controller
                     $response = $http->post($url, $payload);
 
                     if ($response->successful()) {
-                        $partes = $response->json('candidates.0.content.parts') ?? [];
-                        $texto = trim(collect($partes)->pluck('text')->filter()->implode("\n"));
+                        $json = $response->json() ?? [];
+                        $texto = $this->extraerTexto($json);
 
                         if ($texto === '') {
-                            Log::warning('Gemini respondió sin texto', ['modelo' => $modelo]);
-                            return response()->json([
-                                'respuesta' => 'No pude generar una respuesta para esa consulta. Intenta reformularla.',
-                                'html'      => '<p>No pude generar una respuesta para esa consulta. Intenta reformularla.</p>',
-                            ], 422);
+                            $bloqueo = $json['promptFeedback']['blockReason'] ?? null;
+                            $motivo  = $json['candidates'][0]['finishReason'] ?? null;
+
+                            Log::warning('Gemini respondió sin texto', [
+                                'modelo'       => $modelo,
+                                'blockReason'  => $bloqueo,
+                                'finishReason' => $motivo,
+                            ]);
+
+                            $mensaje = ($bloqueo !== null || in_array($motivo, self::MOTIVOS_BLOQUEO, true))
+                                ? 'No puedo responder a esa consulta. Prueba a formularla centrada en tu entrenamiento, nutrición o descanso.'
+                                : 'No pude generar una respuesta para esa consulta. Intenta reformularla.';
+
+                            return $this->error($mensaje, 422);
                         }
 
                         $user->consultasIa()->create([
@@ -109,7 +144,10 @@ class AiAssistantController extends Controller
                     ]);
 
                     if (in_array($ultimoStatus, [429, 503], true)) {
-                        sleep(1);
+                        // Solo se espera si habrá un segundo intento y queda tiempo
+                        if ($intento < 2 && $restante > 8) {
+                            sleep(1);
+                        }
                         continue;
                     }
 
@@ -127,14 +165,24 @@ class AiAssistantController extends Controller
         }
 
         if ($sinConexion) {
-            $mensaje = 'No se pudo conectar con el servicio de IA. Revisa tu conexión a internet e inténtalo de nuevo.';
-        } elseif (in_array($ultimoStatus, [400, 401, 403], true)) {
-            $mensaje = 'El servicio de IA rechazó la solicitud (clave o modelo no válidos). Revisa storage/logs/laravel.log.';
-        } else {
-            $mensaje = 'El servicio de IA está experimentando una alta demanda en este momento. Por favor, intenta de nuevo en unos segundos.';
+            return $this->error(
+                'No se pudo conectar con el servicio de IA. Revisa tu conexión a internet e inténtalo de nuevo.',
+                503
+            );
         }
 
-        return response()->json(['respuesta' => $mensaje, 'html' => '<p>' . e($mensaje) . '</p>'], 503);
+        if (in_array($ultimoStatus, [400, 401, 403], true)) {
+            return $this->error(
+                'El asistente no está disponible por el momento. Inténtalo más tarde.',
+                503,
+                "Gemini rechazó la solicitud (HTTP {$ultimoStatus}): revisa la clave y los modelos. Detalle en storage/logs/laravel.log"
+            );
+        }
+
+        return $this->error(
+            'El servicio de IA está experimentando una alta demanda en este momento. Por favor, intenta de nuevo en unos segundos.',
+            503
+        );
     }
 
     // Borra el historial de conversación guardado del usuario
@@ -143,6 +191,31 @@ class AiAssistantController extends Controller
         $request->user()->consultasIa()->delete();
 
         return redirect()->route('asistente');
+    }
+
+    // Une las partes de texto de la respuesta, ignorando los "pensamientos" internos del modelo
+    private function extraerTexto(array $json): string
+    {
+        $partes = $json['candidates'][0]['content']['parts'] ?? [];
+
+        return trim(collect($partes)
+            ->reject(fn ($parte) => !empty($parte['thought']))
+            ->pluck('text')
+            ->filter()
+            ->implode("\n"));
+    }
+
+    // Respuesta de error uniforme. El detalle técnico solo se muestra con APP_DEBUG=true.
+    private function error(string $mensaje, int $status, ?string $detalleDebug = null): JsonResponse
+    {
+        if ($detalleDebug !== null && config('app.debug')) {
+            $mensaje .= " [{$detalleDebug}]";
+        }
+
+        return response()->json([
+            'respuesta' => $mensaje,
+            'html'      => '<p>' . e($mensaje) . '</p>',
+        ], $status);
     }
 
     // Convierte el markdown de la IA en HTML seguro (el HTML crudo se escapa)
