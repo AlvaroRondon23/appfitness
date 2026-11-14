@@ -18,6 +18,8 @@ class SesionEntrenamientoController extends Controller
             'ejercicio'       => ['required', 'string', Rule::exists('ejercicios', 'clave')],
             'repeticiones'    => ['required', 'integer', 'min:1', 'max:1000'],
             'tiempo_segundos' => ['required', 'integer', 'min:0', 'max:86400'],
+            // Puntaje de técnica (opcional): promedio de la sesión, de 0 a 100
+            'puntaje'         => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         // El user_id se toma de la sesión, nunca del navegador

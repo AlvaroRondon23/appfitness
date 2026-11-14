@@ -15,6 +15,7 @@ class SesionEntrenamiento extends Model
         'ejercicio',
         'repeticiones',
         'tiempo_segundos',
+        'puntaje',
     ];
 
     // Relación: una sesión de entrenamiento pertenece a un usuario
