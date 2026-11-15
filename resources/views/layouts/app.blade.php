@@ -5,13 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'AppFitness') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fuentes -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-        <!-- Evitar parpadeo blanco en Modo Oscuro -->
+        <!-- Evitar parpadeo blanco en modo oscuro -->
         <script>
             if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
@@ -24,41 +24,29 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
+            <!-- Encabezado de la página -->
             @isset($header)
                 <header class="bg-white dark:bg-gray-800 shadow dark:border-b dark:border-gray-700/50">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                        <div class="w-full">
-                            {{ $header }}
-                        </div>
-                        
-                        <!-- Botón Global de Modo Oscuro -->
-                        <div class="ms-4 flex-shrink-0">
-                            <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition shadow-sm flex items-center justify-center" title="Cambiar Modo">
-                                <!-- Sol (modo oscuro activo) -->
-                                <svg class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                </svg>
-                                <!-- Luna (modo claro activo) -->
-                                <svg class="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                </svg>
-                            </button>
-                        </div>
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
                     </div>
                 </header>
             @endisset
 
-            <!-- Page Content -->
-            <main>
+            <!-- Contenido -->
+            <main class="flex-grow">
                 {{ $slot }}
             </main>
+
+            <footer class="print:hidden max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-8 text-center text-xs text-gray-500 dark:text-gray-400">
+                &copy; {{ date('Y') }} AppFitness. Las estimaciones y respuestas son orientativas y no reemplazan la opinión de un profesional de la salud.
+            </footer>
         </div>
 
-        <!-- Manejar el cambio de modo -->
+        <!-- Cambio de modo claro / oscuro -->
         <script>
             function toggleDarkMode() {
                 if (document.documentElement.classList.contains('dark')) {
