@@ -9,12 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Si algún usuario tiene varios perfiles, se conserva solo el más reciente
-        DB::statement(
-            'DELETE p1 FROM physical_profiles p1
-             INNER JOIN physical_profiles p2
-                ON p1.user_id = p2.user_id AND p1.id < p2.id'
-        );
+        // Si algún usuario tiene varios perfiles, se conserva solo el más reciente.
+        // Se evita el DELETE ... JOIN porque es exclusivo de MySQL y rompe en SQLite (tests).
+        $conservar = DB::table('physical_profiles')
+            ->selectRaw('MAX(id) AS id')
+            ->groupBy('user_id')
+            ->pluck('id');
+
+        DB::table('physical_profiles')->whereNotIn('id', $conservar)->delete();
 
         // Garantiza la relación 1:1 entre users y physical_profiles
         Schema::table('physical_profiles', function (Blueprint $table) {
