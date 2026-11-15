@@ -14,6 +14,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Política de privacidad y aviso médico (pública)
+Route::view('/privacidad', 'privacidad')->name('privacidad');
+
 Route::middleware('auth')->group(function () {
     
     // SUB-GRUPO: Rutas sujetas al filtro del Perfil Físico
@@ -33,7 +36,7 @@ Route::middleware('auth')->group(function () {
             $stats = app(EstadisticasEntrenamiento::class)->resumen(auth()->user());
 
             return view('dashboard', compact('perfil', 'sesiones', 'calculos', 'stats'));
-        })->middleware('verified')->name('dashboard');
+        })->name('dashboard');
 
         // Formulario para crear el perfil físico (antes /perfil-prueba)
         Route::get('/perfil-fisico/crear', function () {
@@ -68,10 +71,15 @@ Route::middleware('auth')->group(function () {
     Route::put('/physical-profile', [PhysicalProfileController::class, 'update']);  
     Route::delete('/physical-profile', [PhysicalProfileController::class, 'destroy']); 
     
-    // Rutas base de Breeze
+    // Rutas base de Breeze ("Mi cuenta")
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Descarga de los datos del usuario (JSON)
+    Route::get('/profile/exportar', [ProfileController::class, 'exportar'])
+        ->middleware('throttle:10,1')
+        ->name('profile.exportar');
 });
 
 require __DIR__.'/auth.php';

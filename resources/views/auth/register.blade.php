@@ -43,6 +43,22 @@
                 <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2 text-red-600 dark:text-red-400" />
             </div>
 
+            <!-- Consentimiento -->
+            <div class="mt-5">
+                <label for="privacidad" class="flex items-start gap-2 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                    <input id="privacidad" name="privacidad" type="checkbox" value="1" required @checked(old('privacidad'))
+                           class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span>
+                        Acepto la
+                        <a href="{{ route('privacidad') }}" target="_blank" rel="noopener" class="underline text-blue-600 hover:text-blue-700 dark:text-blue-400">política de privacidad</a>
+                        y el
+                        <a href="{{ route('privacidad') }}#aviso-medico" target="_blank" rel="noopener" class="underline text-blue-600 hover:text-blue-700 dark:text-blue-400">aviso médico</a>,
+                        incluido el envío de mi perfil y mis preguntas al asistente de IA (Gemini).
+                    </span>
+                </label>
+                <x-input-error :messages="$errors->get('privacidad')" class="mt-2 text-red-600 dark:text-red-400" />
+            </div>
+
             <div class="flex items-center justify-between mt-6">
                 <a class="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 underline rounded-md focus:outline-none" href="{{ route('login') }}">
                     ¿Ya estás registrado?

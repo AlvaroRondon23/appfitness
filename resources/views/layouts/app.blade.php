@@ -42,7 +42,12 @@
             </main>
 
             <footer class="print:hidden max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-8 text-center text-xs text-gray-500 dark:text-gray-400">
-                &copy; {{ date('Y') }} AppFitness. Las estimaciones y respuestas son orientativas y no reemplazan la opinión de un profesional de la salud.
+                <p>&copy; {{ date('Y') }} AppFitness. Las estimaciones y respuestas son orientativas y no reemplazan la opinión de un profesional de la salud.</p>
+                <p class="mt-1">
+                    <a href="{{ route('privacidad') }}" class="underline hover:text-gray-700 dark:hover:text-gray-200">Política de privacidad</a>
+                    &middot;
+                    <a href="{{ route('privacidad') }}#aviso-medico" class="underline hover:text-gray-700 dark:hover:text-gray-200">Aviso médico</a>
+                </p>
             </footer>
         </div>
 

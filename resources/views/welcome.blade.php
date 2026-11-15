@@ -236,7 +236,12 @@
         <footer class="border-t border-gray-200 dark:border-gray-800">
             <div class="mx-auto max-w-6xl px-6 py-6 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
                 <p>&copy; {{ date('Y') }} AppFitness. Proyecto de Ingeniería Informática.</p>
-                <p class="mt-1">Las estimaciones y respuestas son orientativas y no reemplazan la opinión de un médico o entrenador.</p>
+                <p class="mt-1">Las estimaciones y respuestas son orientativas y no reemplazan la opinión de un profesional de la salud.</p>
+                <p class="mt-2">
+                    <a href="{{ route('privacidad') }}" class="underline hover:text-gray-700 dark:hover:text-gray-200">Política de privacidad</a>
+                    &middot;
+                    <a href="{{ route('privacidad') }}#aviso-medico" class="underline hover:text-gray-700 dark:hover:text-gray-200">Aviso médico</a>
+                </p>
             </div>
         </footer>
 

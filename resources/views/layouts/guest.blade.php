@@ -37,6 +37,11 @@
             <p class="mt-6 max-w-md text-center text-xs text-gray-500 dark:text-gray-400">
                 El video de tu cámara se procesa en tu navegador y no se envía a ningún servidor.
             </p>
+            <p class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+                <a href="{{ route('privacidad') }}" class="underline hover:text-gray-700 dark:hover:text-gray-200">Política de privacidad</a>
+                &middot;
+                <a href="{{ route('privacidad') }}#aviso-medico" class="underline hover:text-gray-700 dark:hover:text-gray-200">Aviso médico</a>
+            </p>
         </div>
     </body>
 </html>
