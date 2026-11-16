@@ -23,6 +23,8 @@ class DemoSeeder extends Seeder
             'name'              => 'Usuario Demo',
             'password'          => Hash::make('password'),
             'email_verified_at' => now(),
+            // La demo se crea con la política ya aceptada (si se repite el seeder, conserva la fecha original)
+            'privacy_accepted_at' => $user->privacy_accepted_at ?? now(),
         ])->save();
 
         $perfil = PhysicalProfile::firstOrNew(['user_id' => $user->id]);
