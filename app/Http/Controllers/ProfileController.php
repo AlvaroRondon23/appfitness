@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
+use App\Services\BorradoCuenta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
@@ -72,6 +73,14 @@ class ProfileController extends Controller
                 'respuesta' => $c->respuesta,
                 'modelo' => $c->modelo,
             ])->values(),
+            'registro_tecnico_asistente' => $user->registrosIa()->orderBy('id')->get()->map(fn ($r) => [
+                'fecha' => $r->created_at?->toIso8601String(),
+                'resultado' => $r->resultado,
+                'modelo' => $r->modelo,
+                'duracion_ms' => $r->duracion_ms,
+                'caracteres_pregunta' => $r->caracteres_pregunta,
+                'caracteres_respuesta' => $r->caracteres_respuesta,
+            ])->values(),
         ];
 
         return response()->json(
@@ -85,7 +94,7 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, BorradoCuenta $borrado): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
@@ -93,18 +102,17 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        // Siempre debe quedar al menos un administrador
+        if ($user->esAdmin() && User::where('role', User::ROL_ADMIN)->count() <= 1) {
+            return back()->withErrors(
+                ['password' => 'Eres el único administrador. Nombra a otro antes de eliminar tu cuenta.'],
+                'userDeletion'
+            );
+        }
+
         Auth::logout();
 
-        DB::transaction(function () use ($user) {
-            // Cierra también las sesiones abiertas en otros dispositivos (tabla sessions, sin clave foránea)
-            if (config('session.driver') === 'database') {
-                DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
-            }
-
-            // El perfil físico, las sesiones de entrenamiento y las consultas a la IA
-            // se eliminan en cascada (claves foráneas con cascadeOnDelete)
-            $user->delete();
-        });
+        $borrado->eliminar($user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

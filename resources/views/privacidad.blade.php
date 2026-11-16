@@ -51,6 +51,7 @@
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#uso">Para qué usamos tus datos</a></li>
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#conservacion">Conservación y borrado</a></li>
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#derechos">Tus derechos</a></li>
+                    <li><a class="text-blue-600 underline dark:text-blue-400" href="#administracion">Administración de la aplicación</a></li>
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#cookies">Cookies y almacenamiento local</a></li>
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#seguridad">Seguridad</a></li>
                     <li><a class="text-blue-600 underline dark:text-blue-400" href="#aviso-medico">Aviso médico</a></li>
@@ -72,6 +73,7 @@
                         <li><strong>Perfil físico:</strong> peso, estatura, fecha de nacimiento, género, nivel de actividad y, si decides escribirlas, tus condiciones médicas o lesiones. Este último campo es opcional y puede contener información de salud, que es especialmente sensible: escribe solo lo necesario.</li>
                         <li><strong>Sesiones de entrenamiento:</strong> ejercicio, repeticiones, duración, puntaje de técnica (de 0 a 100) y fecha.</li>
                         <li><strong>Consultas al asistente de IA:</strong> las preguntas que escribes y las respuestas recibidas, junto con el modelo que respondió.</li>
+                        <li><strong>Registro técnico del asistente:</strong> por cada consulta, la fecha, si funcionó o falló, el modelo, la duración y el número de caracteres de la pregunta y de la respuesta. Nunca incluye el contenido.</li>
                     </ul>
                 </section>
 
@@ -106,7 +108,7 @@
 
                 <section id="conservacion" class="scroll-mt-6">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Conservación y borrado</h2>
-                    <p class="mt-3">Conservamos tus datos mientras tengas la cuenta. Puedes borrar la conversación con el asistente desde su pantalla y eliminar tu perfil físico desde Mi Panel. Si eliminas tu cuenta en <em>Mi cuenta</em>, se borran de forma permanente tu perfil físico, tus sesiones de entrenamiento y tus consultas al asistente, además de tus sesiones abiertas.</p>
+                    <p class="mt-3">Conservamos tus datos mientras tengas la cuenta. Puedes borrar la conversación con el asistente desde su pantalla y eliminar tu perfil físico desde Mi Panel. Si eliminas tu cuenta en <em>Mi cuenta</em>, se borran de forma permanente tu perfil físico, tus sesiones de entrenamiento, tus consultas al asistente y su registro técnico, además de tus sesiones abiertas. Si solo borras la conversación con el asistente, el registro técnico (sin contenido) se conserva hasta que elimines la cuenta.</p>
                 </section>
 
                 <section id="derechos" class="scroll-mt-6">
@@ -117,6 +119,18 @@
                         <li><strong>Eliminación:</strong> puedes eliminar tu cuenta en <em>Mi cuenta</em>.</li>
                     </ul>
                     <p class="mt-3">Para cualquier otra solicitud, escribe al contacto indicado al final de esta página.</p>
+                </section>
+
+                <section id="administracion" class="scroll-mt-6">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Administración de la aplicación</h2>
+                    <p class="mt-3">AppFitness tiene cuentas con rol de administrador, destinadas al equipo del proyecto para mantener la aplicación. Un administrador puede:</p>
+                    <ul class="mt-3 list-disc space-y-2 pl-6">
+                        <li>ver los datos de tu cuenta (nombre, correo, fecha de registro, rol y estado), si has completado tu perfil físico (solo sí o no) y el resumen de tus sesiones de entrenamiento (ejercicio, repeticiones, duración, puntaje y fecha);</li>
+                        <li>ver estadísticas agregadas de toda la aplicación;</li>
+                        <li>ver el registro técnico del asistente de IA (fecha, resultado, modelo, duración y número de caracteres, junto con tu nombre);</li>
+                        <li>desactivar tu cuenta, cambiar su rol o eliminarla. La eliminación es permanente y borra los mismos datos que cuando la eliminas tú.</li>
+                    </ul>
+                    <p class="mt-3">Un administrador <strong>no</strong> puede ver tu contraseña (se guarda cifrada), los valores de tu perfil físico (peso, estatura, fecha de nacimiento, género, nivel de actividad ni condiciones médicas) ni el contenido de tus preguntas y respuestas con el asistente de IA.</p>
                 </section>
 
                 <section id="cookies" class="scroll-mt-6">

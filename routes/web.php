@@ -9,6 +9,11 @@ use App\Http\Controllers\SesionEntrenamientoController;
 use App\Models\SesionEntrenamiento;
 use App\Services\EstadisticasEntrenamiento;
 use App\Services\PerfilCalculos;
+use App\Http\Controllers\Admin\AdminAsistenteController;
+use App\Http\Controllers\Admin\AdminEjercicioController;
+use App\Http\Controllers\Admin\AdminPanelController;
+use App\Models\Ejercicio;
+use App\Http\Controllers\Admin\AdminUsuarioController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,7 +54,10 @@ Route::middleware('auth')->group(function () {
 
         // Ruta para el Detector de Postura con MediaPipe
         Route::get('/entrenamiento/detector', function () {
-            return view('entrenamiento.detector');
+            // Solo los ejercicios activos del catálogo (el admin puede desactivarlos)
+            return view('entrenamiento.detector', [
+                'ejercicios' => Ejercicio::activos()->orderBy('id')->get(),
+            ]);
         })->name('entrenamiento.detector');
 
         // Guardar la sesión de entrenamiento que genera el detector
@@ -80,6 +88,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/exportar', [ProfileController::class, 'exportar'])
         ->middleware('throttle:10,1')
         ->name('profile.exportar');
+});
+
+// PANEL DE ADMINISTRACIÓN (solo rol admin). Queda fuera de CheckPhysicalProfile:
+// un administrador no necesita perfil físico.
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminPanelController::class, 'index'])->name('panel');
+    Route::get('/usuarios', [AdminUsuarioController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios/{user}', [AdminUsuarioController::class, 'show'])->name('usuarios.show');
+    Route::patch('/usuarios/{user}/estado', [AdminUsuarioController::class, 'estado'])->name('usuarios.estado');
+    Route::patch('/usuarios/{user}/rol', [AdminUsuarioController::class, 'rol'])->name('usuarios.rol');
+    Route::delete('/usuarios/{user}', [AdminUsuarioController::class, 'destroy'])->name('usuarios.destroy');
+
+    Route::get('/ejercicios', [AdminEjercicioController::class, 'index'])->name('ejercicios.index');
+    Route::put('/ejercicios/{ejercicio}', [AdminEjercicioController::class, 'update'])->name('ejercicios.update');
+    Route::patch('/ejercicios/{ejercicio}/activo', [AdminEjercicioController::class, 'activo'])->name('ejercicios.activo');
+
+    Route::get('/asistente', [AdminAsistenteController::class, 'index'])->name('asistente.index');
 });
 
 require __DIR__.'/auth.php';

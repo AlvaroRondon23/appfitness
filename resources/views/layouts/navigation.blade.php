@@ -5,6 +5,11 @@
         ['ruta' => 'entrenamiento', 'activa' => 'entrenamiento*', 'texto' => 'Entrenamiento'],
         ['ruta' => 'asistente',     'activa' => 'asistente*',     'texto' => 'Asistente IA'],
     ];
+
+    // Solo los administradores ven este enlace
+    if (Auth::user()->esAdmin()) {
+        $enlaces[] = ['ruta' => 'admin.panel', 'activa' => 'admin.*', 'texto' => 'Administración'];
+    }
 @endphp
 
 <nav x-data="{ open: false }" class="print:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700/50">

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CuentaActiva;
+use App\Http\Middleware\EsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'admin' => EsAdmin::class,
+        ]);
+
+        // Expulsa a las cuentas desactivadas en cualquier petición web
+        $middleware->appendToGroup('web', CuentaActiva::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Responder en JSON a las rutas api/* y a toda petición que lo pida (Accept: application/json),

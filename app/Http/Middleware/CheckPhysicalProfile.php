@@ -19,7 +19,10 @@ class CheckPhysicalProfile
             if (!$user->physicalProfile) {
                 // ... y si no está intentando entrar ya al formulario o guardarlo, lo redirigimos
                 if (!$request->routeIs('perfil.crear') && !$request->is('physical-profile')) {
-                    return redirect()->route('perfil.crear');
+                    // Un administrador sin perfil va a su panel (no está obligado a tener perfil físico)
+                    return $user->esAdmin()
+                        ? redirect()->route('admin.panel')
+                        : redirect()->route('perfil.crear');
                 }
             } else {
                 // 3. Si SÍ tiene perfil, pero intenta entrar al formulario de creación, lo mandamos al dashboard

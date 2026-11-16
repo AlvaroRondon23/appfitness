@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RegistroIa;
+use App\Models\User;
 use App\Services\ContextoAtleta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,10 +41,15 @@ class AiAssistantController extends Controller
             'prompt.max'      => 'La consulta es demasiado larga (máximo 1000 caracteres).',
         ]);
 
+        $user = $request->user();
+        $inicio = microtime(true);
+        $chars = mb_strlen($datos['prompt']);
+
         $apiKey = config('services.gemini.key');
 
         if (!$apiKey) {
             Log::error('Falta GEMINI_API_KEY en el archivo .env');
+            $this->registrar($user, 'sin_clave', $inicio, $chars);
 
             return $this->error(
                 'El asistente no está disponible por el momento. Inténtalo más tarde.',
@@ -53,9 +60,6 @@ class AiAssistantController extends Controller
 
         // Ampliar el límite de PHP para que no corte la petición antes de responder
         @set_time_limit(self::PRESUPUESTO_SEGUNDOS + 15);
-        $inicio = microtime(true);
-
-        $user = $request->user();
 
         // Memoria de la conversación: las últimas 6 consultas como turnos previos
         $contents = [];
@@ -121,6 +125,12 @@ class AiAssistantController extends Controller
                                 ? 'No puedo responder a esa consulta. Prueba a formularla centrada en tu entrenamiento, nutrición o descanso.'
                                 : 'No pude generar una respuesta para esa consulta. Intenta reformularla.';
 
+                            $this->registrar(
+                                $user,
+                                ($bloqueo !== null || in_array($motivo, self::MOTIVOS_BLOQUEO, true)) ? 'bloqueada' : 'sin_texto',
+                                $inicio, $chars, $modelo, 200
+                            );
+
                             return $this->error($mensaje, 422);
                         }
 
@@ -129,6 +139,8 @@ class AiAssistantController extends Controller
                             'respuesta' => $texto,
                             'modelo'    => $modelo,
                         ]);
+
+                        $this->registrar($user, 'ok', $inicio, $chars, $modelo, 200, mb_strlen($texto));
 
                         return response()->json([
                             'respuesta' => $texto,
@@ -165,6 +177,8 @@ class AiAssistantController extends Controller
         }
 
         if ($sinConexion) {
+            $this->registrar($user, 'sin_conexion', $inicio, $chars);
+
             return $this->error(
                 'No se pudo conectar con el servicio de IA. Revisa tu conexión a internet e inténtalo de nuevo.',
                 503
@@ -172,6 +186,8 @@ class AiAssistantController extends Controller
         }
 
         if (in_array($ultimoStatus, [400, 401, 403], true)) {
+            $this->registrar($user, 'rechazada', $inicio, $chars, null, $ultimoStatus);
+
             return $this->error(
                 'El asistente no está disponible por el momento. Inténtalo más tarde.',
                 503,
@@ -179,10 +195,30 @@ class AiAssistantController extends Controller
             );
         }
 
+        $this->registrar($user, 'sobrecarga', $inicio, $chars, null, $ultimoStatus);
+
         return $this->error(
             'El servicio de IA está experimentando una alta demanda en este momento. Por favor, intenta de nuevo en unos segundos.',
             503
         );
+    }
+
+    // Registro técnico de la consulta (sin contenido). Si falla, nunca debe romper la respuesta al usuario.
+    private function registrar(User $user, string $resultado, float $inicio, int $preguntaChars, ?string $modelo = null, ?int $status = null, ?int $respuestaChars = null): void
+    {
+        try {
+            RegistroIa::create([
+                'user_id'              => $user->id,
+                'resultado'            => $resultado,
+                'modelo'               => $modelo,
+                'http_status'          => $status,
+                'duracion_ms'          => (int) round((microtime(true) - $inicio) * 1000),
+                'caracteres_pregunta'  => $preguntaChars,
+                'caracteres_respuesta' => $respuestaChars,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo guardar el registro técnico del asistente', ['mensaje' => $e->getMessage()]);
+        }
     }
 
     // Borra el historial de conversación guardado del usuario

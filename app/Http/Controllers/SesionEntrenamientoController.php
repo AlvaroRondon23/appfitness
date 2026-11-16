@@ -14,8 +14,8 @@ class SesionEntrenamientoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $datos = $request->validate([
-            // Debe existir en el catálogo (tabla ejercicios)
-            'ejercicio'       => ['required', 'string', Rule::exists('ejercicios', 'clave')],
+            // Debe existir en el catálogo (tabla ejercicios) y estar activo
+            'ejercicio'       => ['required', 'string', Rule::exists('ejercicios', 'clave')->where('activo', true)],
             'repeticiones'    => ['required', 'integer', 'min:1', 'max:1000'],
             'tiempo_segundos' => ['required', 'integer', 'min:0', 'max:86400'],
             // Puntaje de técnica (opcional): promedio de la sesión, de 0 a 100

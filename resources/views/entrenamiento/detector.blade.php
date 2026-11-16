@@ -51,13 +51,21 @@
                         <!-- Selector de Ejercicio -->
                         <div>
                             <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-2">Seleccionar Ejercicio</label>
+                            @php
+                                $iconos = [
+                                    'sentadilla' => '🏋️‍♂️',
+                                    'biceps' => '💪',
+                                    'flexion' => '🤸‍♂️',
+                                    'salto_tijera' => '🙆',
+                                    'elevacion_rodillas' => '🦵',
+                                ];
+                            @endphp
                             <select id="selector-ejercicio" class="w-full text-sm bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-blue-500 text-gray-800 dark:text-white">
-                                <option value="sentadilla">🏋️‍♂️ Sentadillas (Squats)</option>
-                                <option value="biceps">💪 Curl de Bíceps (Brazos)</option>
-                                <option value="flexion">🤸‍♂️ Flexiones de Pecho (Push-ups)</option>
-                                <option value="salto_tijera">🙆 Salto de Tijera (Jumping Jacks)</option>
-                                <option value="elevacion_rodillas">🦵 Elevación de Rodillas (High Knees)</option>
+                                @foreach ($ejercicios as $e)
+                                    <option value="{{ $e->clave }}" data-descripcion="{{ $e->descripcion }}">{{ trim(($iconos[$e->clave] ?? '').' '.$e->nombre) }}</option>
+                                @endforeach
                             </select>
+                            <p id="descripcion-ejercicio" class="hidden mt-2 text-xs text-gray-500 dark:text-gray-400"></p>
                         </div>
 
                         <!-- Contador de Repeticiones -->
@@ -925,5 +933,21 @@
                 guardarSesion(ejercicioActual, true);
             }
         });
+    </script>
+
+    <!-- Descripción del ejercicio elegido (la edita el administrador) -->
+    <script>
+        (function () {
+            const sel = document.getElementById('selector-ejercicio');
+            const desc = document.getElementById('descripcion-ejercicio');
+            if (!sel || !desc) return;
+            const mostrar = () => {
+                const texto = (sel.options[sel.selectedIndex] || {dataset: {}}).dataset.descripcion || '';
+                desc.textContent = texto;
+                desc.classList.toggle('hidden', texto === '');
+            };
+            sel.addEventListener('change', mostrar);
+            mostrar();
+        })();
     </script>
 </x-app-layout>
