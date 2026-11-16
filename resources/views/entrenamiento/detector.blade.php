@@ -55,6 +55,8 @@
                                 <option value="sentadilla">🏋️‍♂️ Sentadillas (Squats)</option>
                                 <option value="biceps">💪 Curl de Bíceps (Brazos)</option>
                                 <option value="flexion">🤸‍♂️ Flexiones de Pecho (Push-ups)</option>
+                                <option value="salto_tijera">🙆 Salto de Tijera (Jumping Jacks)</option>
+                                <option value="elevacion_rodillas">🦵 Elevación de Rodillas (High Knees)</option>
                             </select>
                         </div>
 
@@ -135,6 +137,13 @@
         //  - umbralArriba: ángulo para volver a "ARRIBA" y contar la repetición
         //  - anguloIdeal: con este ángulo o menor, la profundidad vale 100 puntos
         //  - postura(p, v): devuelve null si no se puede medir, o { etiqueta, valor, ok, mensaje, guia }
+        //
+        // Los ejercicios que miden ambos lados del cuerpo a la vez (salto de tijera, elevación de rodillas)
+        // no usan izq / der / angulo / postura. En su lugar definen:
+        //  - medir(landmarks, puntos): devuelve null si no se ve lo necesario, o { valor, texto, post }
+        //    "valor" sigue la misma regla (baja en la fase activa); "post" tiene el formato de postura()
+        //  - tiempoMinMs (opcional): ritmo mínimo de una repetición; si no se define se usa TIEMPO_MIN_REP_MS
+        //  - consejo (opcional): cómo colocarse frente a la cámara, se muestra al elegir el ejercicio
         const EJERCICIOS = {
             sentadilla: {
                 nombre: 'Sentadilla',
@@ -219,6 +228,100 @@
                     arribaGuia: 'Fase: Arriba (Estirado)', arribaIcono: '⬆️',
                     masProfundo: 'Intenta bajar más el pecho'
                 }
+            },
+            salto_tijera: {
+                nombre: 'Salto de tijera',
+                fases: ['CERRADO', 'ABIERTO'],
+                consejo: 'Colócate de frente a la cámara, con el cuerpo completo a la vista, de la cabeza a los pies.',
+                // Escala de "cierre": 100 = brazos abajo y pies juntos, 0 = brazos arriba y pies bien separados
+                umbralAbajo: 25, umbralArriba: 70, anguloIdeal: 10,
+                tiempoMinMs: 500,
+                medir: (lm, p) => {
+                    // nariz, hombros, muñecas, caderas y tobillos
+                    if (visibilidadMinima(lm, [0, 11, 12, 15, 16, 23, 24, 27, 28]) < UMBRAL_VISIBILIDAD) return null;
+
+                    const anchoHombros = distancia(p[11], p[12]);
+                    if (anchoHombros < 1) return null;
+
+                    // Brazos: ángulo en el hombro entre la cadera y la muñeca (abajo ~0°, arriba ~180°)
+                    const angIzq = calcularAngulo(p[23], p[11], p[15]);
+                    const angDer = calcularAngulo(p[24], p[12], p[16]);
+                    const angBrazos = Math.round((angIzq + angDer) / 2);
+                    let cierreBrazos = 100 - 100 * limitar((angBrazos - 30) / (160 - 30), 0, 1);
+
+                    // Las muñecas deben quedar por encima de la cabeza (en la imagen, "arriba" es y menor)
+                    const manosArriba = p[15][1] < p[0][1] && p[16][1] < p[0][1];
+                    if (!manosArriba) cierreBrazos = Math.max(cierreBrazos, 40);
+
+                    // Pies: separación de los tobillos medida en anchos de hombros (juntos ~0.5, abiertos ~1.3 o más)
+                    const separacion = distancia(p[27], p[28]) / anchoHombros;
+                    const cierrePies = 100 - 100 * limitar((separacion - 0.6) / (1.3 - 0.6), 0, 1);
+
+                    // Solo se considera "abierto" si brazos Y pies están abiertos
+                    const valor = Math.round(Math.max(cierreBrazos, cierrePies));
+
+                    const dif = Math.abs(angIzq - angDer);
+                    return {
+                        valor,
+                        texto: `Brazos: ${angBrazos}° | Pies: ${separacion.toFixed(1)}x hombros`,
+                        post: {
+                            etiqueta: 'Dif. brazos', valor: dif, ok: dif <= 45,
+                            mensaje: 'Cuidado: sube los dos brazos a la vez',
+                            guia: 'Brazos simétricos'
+                        }
+                    };
+                },
+                textos: {
+                    noVisible: 'ALERTA: ¡Aléjate! Se necesita ver tu cuerpo completo, de la cabeza a los pies',
+                    noVisibleGuia: 'Posiciona cuerpo completo',
+                    parcial: 'Abre más: manos sobre la cabeza y pies separados...', parcialGuia: 'Brazos arriba, pies abiertos', parcialIcono: '↔️',
+                    abajo: '¡Bien abierto! Ahora cierra brazos y piernas', abajoGuia: 'Fase: Abierto', abajoIcono: '🙆',
+                    arribaGuia: 'Fase: Cerrado (Completa)', arribaIcono: '🧍',
+                    masProfundo: 'Abre más: lleva las manos por encima de la cabeza y separa más los pies'
+                }
+            },
+            elevacion_rodillas: {
+                nombre: 'Elevación de rodillas',
+                fases: ['PIERNAS ABAJO', 'RODILLA ARRIBA'],
+                consejo: 'Colócate de frente a la cámara, de pie, con torso y rodillas a la vista.',
+                // Altura de la rodilla bajo la cadera, en % del largo del torso (100 = rodilla muy abajo, 0 = a la altura de la cadera)
+                // Se toma la rodilla más alta de las dos, así que sirve para ambas piernas
+                umbralAbajo: 25, umbralArriba: 50, anguloIdeal: 5,
+                tiempoMinMs: 400,
+                medir: (lm, p) => {
+                    // hombros, caderas y rodillas
+                    if (visibilidadMinima(lm, [11, 12, 23, 24, 25, 26]) < UMBRAL_VISIBILIDAD) return null;
+
+                    const hombros = medio(p[11], p[12]);
+                    const caderas = medio(p[23], p[24]);
+                    const torso = distancia(hombros, caderas);
+                    if (torso < 1) return null;
+
+                    const izq = Math.round(100 * (p[25][1] - p[23][1]) / torso);
+                    const der = Math.round(100 * (p[26][1] - p[24][1]) / torso);
+                    const valor = Math.min(izq, der);
+
+                    // Inclinación del torso respecto a la vertical
+                    const inclinacion = Math.round(Math.atan2(Math.abs(hombros[0] - caderas[0]), Math.abs(caderas[1] - hombros[1])) * 180 / Math.PI);
+
+                    return {
+                        valor,
+                        texto: `Rodilla sobre/bajo cadera: izq ${izq}% | der ${der}%`,
+                        post: {
+                            etiqueta: 'Torso', valor: inclinacion, ok: inclinacion <= 25,
+                            mensaje: 'Cuidado: mantén el torso erguido',
+                            guia: 'Torso recto'
+                        }
+                    };
+                },
+                textos: {
+                    noVisible: 'ALERTA: ¡Aléjate! Se necesitan tu torso y tus rodillas a la vista',
+                    noVisibleGuia: 'Posiciona torso y rodillas',
+                    parcial: 'Sube más la rodilla...', parcialGuia: 'Rodilla a la altura de la cadera', parcialIcono: '📈',
+                    abajo: '¡Buena altura! Baja la pierna', abajoGuia: 'Fase: Rodilla arriba', abajoIcono: '🦵',
+                    arribaGuia: 'Fase: Piernas abajo (Completa)', arribaIcono: '🧍',
+                    masProfundo: 'Sube más la rodilla, hasta la altura de la cadera'
+                }
             }
         };
 
@@ -291,6 +394,23 @@
                 angulo = 360.0 - angulo;
             }
             return Math.round(angulo);
+        }
+
+        // Ayudas para los ejercicios que miden ambos lados del cuerpo
+        function visibilidadMinima(landmarks, ids) {
+            return Math.min(...ids.map(i => landmarks[i].visibility));
+        }
+
+        function limitar(valor, minimo, maximo) {
+            return Math.max(minimo, Math.min(maximo, valor));
+        }
+
+        function distancia(a, b) {
+            return Math.hypot(a[0] - b[0], a[1] - b[1]);
+        }
+
+        function medio(a, b) {
+            return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
         }
 
         function hablar(texto) {
@@ -486,6 +606,19 @@
             };
         }
 
+        // Medición de los ejercicios que usan un solo lado del cuerpo (sentadilla, bíceps, flexión)
+        function medirUnLado(cfg, landmarks, puntos) {
+            const lado = elegirLado(landmarks, puntos, cfg);
+            if (!lado) return null;
+
+            const valor = cfg.angulo(lado.p);
+            return {
+                valor,
+                texto: `${cfg.etiquetaAngulo}: ${valor}°`,
+                post: cfg.postura(lado.p, lado.v)
+            };
+        }
+
         // Calcula el puntaje (0-100) de la repetición que se acaba de completar:
         //  50% profundidad (qué tanto se acercó al ángulo ideal) + 50% control (postura y ritmo)
         function completarRepeticion(cfg, ahora) {
@@ -500,7 +633,7 @@
 
             let control = 100;
             const malaPostura = repActual.framesError >= FRAMES_ERROR_POSTURA;
-            const muyRapida = duracion < TIEMPO_MIN_REP_MS;
+            const muyRapida = duracion < (cfg.tiempoMinMs ?? TIEMPO_MIN_REP_MS);
             if (malaPostura) control -= 40;
             if (muyRapida) control -= 30;
 
@@ -522,13 +655,13 @@
             return { puntaje, consejo, malaPostura };
         }
 
-        function procesarEjercicio(cfg, lado) {
+        function procesarEjercicio(cfg, medida) {
             const ahora = Date.now();
-            const angulo = cfg.angulo(lado.p);
-            const post = cfg.postura(lado.p, lado.v);
+            const angulo = medida.valor;
+            const post = medida.post;
             const malaPosturaAhora = !!(post && !post.ok);
 
-            el.valAngulo.innerText = `${cfg.etiquetaAngulo}: ${angulo}°` + (post ? ` | ${post.etiqueta}: ${post.valor}°` : '');
+            el.valAngulo.innerText = medida.texto + (post ? ` | ${post.etiqueta}: ${post.valor}°` : '');
 
             // Acumula datos de la repetición en curso (mínimo ángulo y frames con mala postura)
             const acumular = () => {
@@ -606,13 +739,15 @@
                 const ancho = canvasElement.width;
                 const alto = canvasElement.height;
                 const puntos = results.poseLandmarks.map(lm => [Math.floor(lm.x * ancho), Math.floor(lm.y * alto)]);
-                const lado = elegirLado(results.poseLandmarks, puntos, cfg);
+                const medida = cfg.medir
+                    ? cfg.medir(results.poseLandmarks, puntos)
+                    : medirUnLado(cfg, results.poseLandmarks, puntos);
 
-                if (!lado) {
+                if (!medida) {
                     mostrarFeedback('alerta', cfg.textos.noVisible, cfg.textos.noVisibleGuia);
                 } else {
                     dibujarEsqueleto(puntos);
-                    procesarEjercicio(cfg, lado);
+                    procesarEjercicio(cfg, medida);
                 }
             } else {
                 mostrarFeedback('neutro', 'Encuadra tu cuerpo completo para iniciar', 'Esperando detección...');
@@ -776,7 +911,8 @@
                 inicioSesion = camaraActiva ? Date.now() : null;
 
                 reiniciarContadores();
-                mostrarFeedback('neutro', 'Ejercicio cambiado. Listo para iniciar.', EJERCICIOS[ejercicioActual].nombre);
+                const nuevoCfg = EJERCICIOS[ejercicioActual];
+                mostrarFeedback('neutro', 'Ejercicio cambiado. Listo para iniciar.' + (nuevoCfg.consejo ? ' ' + nuevoCfg.consejo : ''), nuevoCfg.nombre);
 
                 await guardado;
             });

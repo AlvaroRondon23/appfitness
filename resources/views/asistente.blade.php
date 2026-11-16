@@ -154,6 +154,11 @@
                         || (data.errors && data.errors.prompt && data.errors.prompt[0])
                         || data.message;
 
+                    // Sesión caducada (401) o formulario vencido (419): Laravel responde en inglés
+                    if (response.status === 401 || response.status === 419) {
+                        mensaje = 'Tu sesión caducó. Recarga la página e inicia sesión de nuevo.';
+                    }
+
                     if (!mensaje) {
                         mensaje = response.status === 429
                             ? 'Has enviado demasiadas consultas seguidas. Espera un momento e inténtalo de nuevo.'

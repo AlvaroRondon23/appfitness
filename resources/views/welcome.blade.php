@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="AppFitness cuenta tus repeticiones y puntúa tu técnica con la cámara de tu dispositivo. Sentadillas, curl de bíceps y flexiones.">
+        <meta name="description" content="AppFitness cuenta tus repeticiones y puntúa tu técnica con la cámara de tu dispositivo. Sentadillas, curl de bíceps, flexiones, saltos de tijera y elevación de rodillas.">
         <title>AppFitness: entrena con la técnica correcta</title>
 
         <!-- Fuentes -->
@@ -68,7 +68,7 @@
                     </h1>
 
                     <p class="mt-6 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-300">
-                        AppFitness cuenta tus repeticiones de sentadillas, curl de bíceps y flexiones, y puntúa tu técnica de 0 a 100 en cada sesión.
+                        AppFitness cuenta tus repeticiones de sentadillas, curl de bíceps, flexiones, saltos de tijera y elevación de rodillas, y puntúa tu técnica de 0 a 100 en cada sesión.
                     </p>
                     <p class="mt-3 max-w-xl text-base leading-relaxed text-gray-600 dark:text-gray-300">
                         El análisis se hace en tu navegador: el video no sale de tu dispositivo.
@@ -164,7 +164,7 @@
                         <div class="border-t-2 border-blue-600 pt-5">
                             <h3 class="text-lg font-bold">Entrenar con el detector de postura</h3>
                             <p class="mt-2 leading-relaxed text-gray-600 dark:text-gray-300">
-                                Activa la cámara y haz sentadillas, curl de bíceps o flexiones. Solo cuenta las repeticiones completas y puntúa tu técnica.
+                                Activa la cámara y haz sentadillas, curl de bíceps, flexiones, saltos de tijera o elevación de rodillas. Solo cuenta las repeticiones completas y puntúa tu técnica.
                             </p>
                         </div>
 

@@ -15,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Responder en JSON a las rutas api/* y a toda petición que lo pida (Accept: application/json),
+        // como el guardado de sesiones del detector. Sin lo segundo, los errores de validación y de
+        // sesión caducada se convierten en redirecciones (302) en lugar de 422 / 401.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
     })->create();

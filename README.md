@@ -8,7 +8,7 @@ Es un proyecto académico de Ingeniería Informática. No es un servicio comerci
 
 ## Funciones
 
-- **Detector de postura:** usa MediaPipe Pose directamente en el navegador. Cuenta repeticiones válidas por ciclo completo y puntúa la técnica de 0 a 100. Ejercicios disponibles: sentadilla, bíceps y flexión.
+- **Detector de postura:** usa MediaPipe Pose directamente en el navegador. Cuenta repeticiones válidas por ciclo completo y puntúa la técnica de 0 a 100. Ejercicios disponibles: sentadilla, bíceps, flexión, salto de tijera y elevación de rodillas.
 - **Mi Panel:** resumen del rendimiento con gráficas (repeticiones por semana, evolución de la técnica y sesiones por ejercicio), meta semanal de 3 sesiones, racha de días y últimas sesiones.
 - **Perfil físico:** peso, estatura, fecha de nacimiento, género, nivel de actividad y condiciones médicas opcionales. Calcula IMC, gasto basal, gasto diario y un reparto base de macronutrientes.
 - **Asistente de IA:** consultas a Gemini con el contexto del perfil y los entrenamientos del usuario, con memoria de la conversación.
@@ -112,7 +112,7 @@ GEMINI_API_KEY=           # tu clave de Gemini; solo en .env
 
 1. Abre la aplicación y pulsa **Registrarse**. Escribe nombre, correo y contraseña, y marca la casilla que acepta la política de privacidad y el aviso médico.
 2. La primera vez te pedirá completar tu **perfil físico** (peso, estatura, fecha de nacimiento, género y nivel de actividad). Las condiciones médicas son opcionales. Puedes editarlo después desde Mi Panel.
-3. Entra a **Entrenar**, elige el ejercicio, permite el acceso a la cámara y colócate de modo que se vea tu cuerpo completo en un espacio despejado.
+3. Entra a **Entrenar**, elige el ejercicio, permite el acceso a la cámara y colócate de modo que se vea tu cuerpo completo en un espacio despejado. Para el salto de tijera y la elevación de rodillas, ponte de frente a la cámara.
 4. Al terminar, la sesión se guarda y aparece en **Mi Panel** con tus gráficas y tu progreso hacia la meta semanal.
 5. En **Asistente** puedes preguntar sobre ejercicio, nutrición o descanso. Las respuestas usan tu perfil y tus sesiones.
 6. En **Mi cuenta** puedes cambiar tus datos y contraseña, descargar tus datos en JSON o eliminar la cuenta.
@@ -127,7 +127,7 @@ Las pruebas usan SQLite en memoria, así que no tocan tu base MySQL. Necesitas l
 php artisan test
 ```
 
-Cubren la autenticación, el registro con consentimiento, los cálculos del perfil (`PerfilCalculos`), las estadísticas (`EstadisticasEntrenamiento`), la exportación de datos y el borrado de cuenta en cascada.
+Cubren la autenticación, el registro con consentimiento, los cálculos del perfil (`PerfilCalculos`), las estadísticas (`EstadisticasEntrenamiento`), la exportación de datos, el borrado de cuenta en cascada y el guardado de sesiones con los ejercicios del catálogo.
 
 ## Aviso médico
 

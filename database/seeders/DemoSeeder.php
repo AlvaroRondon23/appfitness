@@ -38,7 +38,7 @@ class DemoSeeder extends Seeder
         SesionEntrenamiento::where('user_id', $user->id)->delete();
 
         mt_srand(2026); // datos reproducibles
-        $ejercicios = ['sentadilla', 'biceps', 'flexion'];
+        $ejercicios = ['sentadilla', 'biceps', 'flexion', 'salto_tijera', 'elevacion_rodillas'];
         $dias = 21;
 
         for ($offset = $dias - 1; $offset >= 0; $offset--) {
@@ -51,7 +51,7 @@ class DemoSeeder extends Seeder
             $sesionesDelDia = mt_rand(1, 2);
 
             for ($k = 0; $k < $sesionesDelDia; $k++) {
-                $ejercicio = $ejercicios[($offset + $k) % 3];
+                $ejercicio = $ejercicios[($offset + $k) % count($ejercicios)];
                 $reps = (int) round(10 + $progreso * 8) + mt_rand(0, 4);
                 $puntaje = min(100, (int) round(70 + $progreso * 20) + mt_rand(-5, 8));
 

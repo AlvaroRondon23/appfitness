@@ -186,7 +186,7 @@
                     <div>
                         <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">Asistente de Postura con Inteligencia Artificial</h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
-                            Monitorea tus sentadillas, bíceps y flexiones en tiempo real utilizando la cámara de tu dispositivo. El sistema analiza ángulos articulares, estabilidad y repeticiones mediante MediaPipe.
+                            Monitorea tus sentadillas, bíceps, flexiones, saltos de tijera y elevaciones de rodillas en tiempo real utilizando la cámara de tu dispositivo. El sistema analiza ángulos articulares, estabilidad y repeticiones mediante MediaPipe.
                         </p>
                     </div>
                 </div>
@@ -201,7 +201,7 @@
 
             <!-- Resumen de Rendimiento -->
             @php
-                $nombresEj = ['sentadilla' => '🏋️‍♂️ Sentadillas', 'biceps' => '💪 Curl de Bíceps', 'flexion' => '🤸‍♂️ Flexiones'];
+                $nombresEj = ['sentadilla' => '🏋️‍♂️ Sentadillas', 'biceps' => '💪 Curl de Bíceps', 'flexion' => '🤸‍♂️ Flexiones', 'salto_tijera' => '🙆 Salto de Tijera', 'elevacion_rodillas' => '🦵 Elevación de Rodillas'];
                 $horas = intdiv($stats['segundos'], 3600);
                 $minutos = intdiv($stats['segundos'] % 3600, 60);
                 $tiempoTotal = $horas > 0 ? "{$horas} h {$minutos} min" : "{$minutos} min";
@@ -475,7 +475,7 @@
             Chart.defaults.color = colorTexto;
             Chart.defaults.font.family = 'inherit';
 
-            const nombres = { sentadilla: 'Sentadillas', biceps: 'Curl de bíceps', flexion: 'Flexiones' };
+            const nombres = { sentadilla: 'Sentadillas', biceps: 'Curl de bíceps', flexion: 'Flexiones', salto_tijera: 'Salto de tijera', elevacion_rodillas: 'Elevación de rodillas' };
             const semanas = @json($stats['semanas']);
             const tecnica = @json($stats['evolucion_puntaje']);
             const porEjercicio = @json($stats['por_ejercicio']);
@@ -515,7 +515,7 @@
                     type: 'doughnut',
                     data: {
                         labels: porEjercicio.map(e => nombres[e.ejercicio] ?? e.ejercicio),
-                        datasets: [{ data: porEjercicio.map(e => e.sesiones), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7'], borderWidth: 0 }],
+                        datasets: [{ data: porEjercicio.map(e => e.sesiones), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ef4444'], borderWidth: 0 }],
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
                 });
