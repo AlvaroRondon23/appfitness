@@ -12,6 +12,7 @@ Es un proyecto académico de Ingeniería Informática. No es un servicio comerci
 - **Mi Panel:** resumen del rendimiento con gráficas (repeticiones por semana, evolución de la técnica y sesiones por ejercicio), meta semanal de 3 sesiones, racha de días y últimas sesiones.
 - **Perfil físico:** peso, estatura, fecha de nacimiento, género, nivel de actividad y condiciones médicas opcionales. Calcula IMC, gasto basal, gasto diario y un reparto base de macronutrientes.
 - **Asistente de IA:** consultas a Gemini con el contexto del perfil y los entrenamientos del usuario, con memoria de la conversación.
+- **Panel de administración:** rol de administrador con resumen global (usuarios, sesiones, ejercicio más usado), gestión de usuarios (buscar, ver resumen, cambiar rol, desactivar o eliminar), gestión del catálogo de ejercicios (nombre, descripción y activar o desactivar) y supervisión del asistente de IA con datos técnicos de uso, sin el contenido de las conversaciones.
 - **Privacidad:** política y aviso médico públicos, consentimiento al registrarse, exportación de los datos en JSON y borrado de la cuenta con todos sus datos.
 - **Modo claro y oscuro** en toda la aplicación.
 
@@ -20,6 +21,23 @@ Es un proyecto académico de Ingeniería Informática. No es un servicio comerci
 ![Detector de postura](docs/capturas/detector.png)
 
 ![Asistente de IA](docs/capturas/asistente.png)
+
+## Administración
+
+Las cuentas tienen un rol: `user` (por defecto) o `admin`. Nadie puede volverse administrador desde el registro ni desde un formulario: el primero se crea con un seeder y después otro administrador puede cambiar el rol de una cuenta.
+
+```powershell
+php artisan db:seed --class=AdminSeeder
+```
+
+Crea `admin@appfitness.test` con la contraseña `password` (solo para uso local; cámbiala o define `ADMIN_EMAIL` y `ADMIN_PASSWORD` en el `.env`). El enlace **Administración** aparece solo para administradores y lleva a `/admin`:
+
+- **Resumen:** usuarios, nuevos, activos de la semana, sesiones, repeticiones, técnica promedio y sesiones por ejercicio y por semana.
+- **Usuarios:** buscador, ficha con el resumen de entrenamiento, cambio de rol, desactivar o reactivar la cuenta y eliminarla (pide la contraseña del administrador).
+- **Ejercicios:** editar nombre y descripción, y activar o desactivar. Un ejercicio desactivado no aparece en el detector ni admite sesiones nuevas. No se pueden crear ejercicios nuevos desde el panel porque la lógica de cada uno vive en el detector.
+- **Asistente IA:** consultas por día, tasa de éxito, resultados, modelos y un registro técnico. No muestra preguntas ni respuestas.
+
+Protecciones: un administrador no puede cambiar su propio rol, desactivarse ni eliminarse desde el panel, ni actuar sobre otro administrador sin quitarle antes el rol. El único administrador tampoco puede borrar su cuenta desde Mi cuenta. Un administrador no ve los datos del perfil físico (peso, estatura, condiciones médicas) ni el contenido de las conversaciones; la política de privacidad lo explica.
 
 ## Privacidad del video
 
@@ -101,6 +119,8 @@ DB_USERNAME=root
 DB_PASSWORD=
 
 GEMINI_API_KEY=           # tu clave de Gemini; solo en .env
+# ADMIN_EMAIL=            # opcional: correo del primer administrador (AdminSeeder)
+# ADMIN_PASSWORD=         # opcional: contraseña inicial del administrador (solo se usa al crear la cuenta)
 # GEMINI_MODELS=          # opcional: modelos separados por coma; si se omite se usan los de config/services.php
 ```
 
@@ -116,6 +136,7 @@ GEMINI_API_KEY=           # tu clave de Gemini; solo en .env
 4. Al terminar, la sesión se guarda y aparece en **Mi Panel** con tus gráficas y tu progreso hacia la meta semanal.
 5. En **Asistente** puedes preguntar sobre ejercicio, nutrición o descanso. Las respuestas usan tu perfil y tus sesiones.
 6. En **Mi cuenta** puedes cambiar tus datos y contraseña, descargar tus datos en JSON o eliminar la cuenta.
+7. Si eres administrador, entra por el enlace **Administración**. Un administrador sin perfil físico no está obligado a crearlo.
 
 ![Política de privacidad](docs/capturas/privacidad.png)
 
@@ -127,7 +148,7 @@ Las pruebas usan SQLite en memoria, así que no tocan tu base MySQL. Necesitas l
 php artisan test
 ```
 
-Cubren la autenticación, el registro con consentimiento, los cálculos del perfil (`PerfilCalculos`), las estadísticas (`EstadisticasEntrenamiento`), la exportación de datos, el borrado de cuenta en cascada y el guardado de sesiones con los ejercicios del catálogo.
+Cubren la autenticación, el registro con consentimiento, los cálculos del perfil (`PerfilCalculos`), las estadísticas (`EstadisticasEntrenamiento`), la exportación de datos, el borrado de cuenta en cascada y el guardado de sesiones con los ejercicios del catálogo, el rol de administrador y sus protecciones, la gestión del catálogo y el registro técnico del asistente.
 
 ## Aviso médico
 
@@ -137,7 +158,9 @@ La información de AppFitness es orientativa. El IMC, el gasto calórico, los ma
 
 ```
 app/Http/Controllers/   Controladores (asistente, perfil físico, sesiones, cuenta)
-app/Services/           ContextoAtleta, EstadisticasEntrenamiento, PerfilCalculos
+app/Http/Controllers/Admin/   Panel de administración (resumen, usuarios, ejercicios, asistente)
+app/Http/Middleware/    CheckPhysicalProfile, EsAdmin, CuentaActiva
+app/Services/           ContextoAtleta, EstadisticasEntrenamiento, EstadisticasGlobales, PerfilCalculos, BorradoCuenta
 resources/views/        Vistas Blade (portada, panel, detector, asistente, privacidad)
 tests/                  Pruebas unitarias y de funcionalidad
 ```
